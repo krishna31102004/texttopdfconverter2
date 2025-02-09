@@ -6,94 +6,99 @@
     <title>All PDFs</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 
-    <!-- ✅ Firebase SDK (Corrected) -->
+    <script>
+        // ✅ Dark Mode Toggle Function
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
+        }
+
+        // ✅ Check Local Storage for Theme Preference
+        window.onload = function() {
+            if (localStorage.getItem("theme") === "dark") {
+                document.documentElement.classList.add("dark");
+            }
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("pdfList").classList.remove("hidden");
+        };
+    </script>
+
+    <!-- ✅ Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // ✅ Firebase configuration
-        const firebaseConfig = {
-  apiKey: "AIzaSyBei7dDbq3rf_oDS0vW0Hpv2BHO0C5Oh_k",
-  authDomain: "texttopdfconverter-95c62.firebaseapp.com",
-  projectId: "texttopdfconverter-95c62",
-  storageBucket: "texttopdfconverter-95c62.firebasestorage.app",
-  messagingSenderId: "574641352096",
-  appId: "1:574641352096:web:28183047f39938a7d488c5"
-};
+       
+const firebaseConfig = {
+    apiKey: "AIzaSyBei7dDbq3rf_oDS0vW0Hpv2BHO0C5Oh_k",
+    authDomain: "texttopdfconverter-95c62.firebaseapp.com",
+    projectId: "texttopdfconverter-95c62",
+    storageBucket: "texttopdfconverter-95c62.firebasestorage.app",
+    messagingSenderId: "574641352096",
+    appId: "1:574641352096:web:28183047f39938a7d488c5"
+  };
 
-        // ✅ Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
 
-        // ✅ Function for authentication (Login/Logout)
         function handleAuth() {
             if (auth.currentUser) {
                 console.log("Logging out...");
                 signOut(auth);
             } else {
                 console.log("Logging in...");
-                signInWithPopup(auth, provider)
-                    .catch((error) => {
-                        console.error("❌ Login Error:", error.message);
-                        alert("Login failed: " + error.message);
-                    });
+                signInWithPopup(auth, provider).catch((error) => {
+                    console.error("❌ Login Error:", error.message);
+                    alert("Login failed: " + error.message);
+                });
             }
         }
-        window.handleAuth = handleAuth; // ✅ Ensure global access
+        window.handleAuth = handleAuth;
 
-        // ✅ Track user login state
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                console.log("User logged in:", user.email);
                 document.getElementById("userEmail").innerText = `🔹 Logged in as: ${user.email}`;
                 document.getElementById("userEmail").classList.remove("hidden");
                 document.getElementById("authButton").innerText = "Logout";
                 document.querySelectorAll(".deleteButton").forEach(btn => btn.classList.remove("hidden"));
             } else {
-                console.log("User logged out.");
                 document.getElementById("userEmail").classList.add("hidden");
                 document.getElementById("authButton").innerText = "Login";
                 document.querySelectorAll(".deleteButton").forEach(btn => btn.classList.add("hidden"));
             }
         });
 
-        // ✅ Function to delete PDFs
         function deletePDF(filename) {
-    const user = auth.currentUser;
-    if (!user) {
-        alert("❌ Please log in to delete PDFs.");
-        return;
-    }
-
-    user.getIdToken(true).then(idToken => {
-        console.log("🔐 Sending request with token:", idToken); // Debugging log
-
-        fetch("/delete-pdf", {
-            method: "POST",
-            headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${idToken}`  // ✅ Ensure Bearer token format
-            },
-            body: JSON.stringify({ filename }),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert("✅ File deleted successfully");
-                location.reload();
-            } else {
-                alert("❌ Failed to delete file: " + data.message);
-                console.error("🚨 Delete error:", data);
+            const user = auth.currentUser;
+            if (!user) {
+                alert("❌ Please log in to delete PDFs.");
+                return;
             }
-        })
-        .catch(err => console.error("❌ Error deleting file:", err));
-    });
-}
-window.deletePDF = deletePDF; // ✅ Ensure global access
 
+            user.getIdToken(true).then(idToken => {
+                fetch("/delete-pdf", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ filename }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("✅ File deleted successfully");
+                        location.reload();
+                    } else {
+                        alert("❌ Failed to delete file: " + data.message);
+                    }
+                })
+                .catch(err => console.error("❌ Error deleting file:", err));
+            });
+        }
+        window.deletePDF = deletePDF;
 
-        // ✅ Function to filter PDFs by search
         function filterPDFs() {
             let searchInput = document.getElementById("search").value.toLowerCase();
             let items = document.querySelectorAll(".pdf-item");
@@ -103,15 +108,17 @@ window.deletePDF = deletePDF; // ✅ Ensure global access
                 item.style.display = filename.includes(searchInput) ? "flex" : "none";
             });
         }
-        window.filterPDFs = filterPDFs; // ✅ Ensure global access
+        window.filterPDFs = filterPDFs;
     </script>
-
 </head>
-<body class="bg-gray-100 p-4">
-    <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg">
+<body class="bg-gray-100 dark:bg-gray-900 p-4 text-gray-900 dark:text-gray-200 transition duration-300">
+    <div class="max-w-3xl mx-auto bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg">
         <div class="flex justify-between items-center mb-4">
             <h1 class="text-2xl font-bold">List of All PDFs</h1>
-            <button id="authButton" onclick="handleAuth()" class="bg-blue-500 text-white px-3 py-1 rounded">Login</button>
+            <div>
+                <button onclick="toggleDarkMode()" class="bg-gray-600 text-white px-3 py-1 rounded shadow hover:bg-gray-700 transition duration-300">🌙</button>
+                <button id="authButton" onclick="handleAuth()" class="bg-blue-500 text-white px-3 py-1 rounded shadow hover:bg-blue-600 transition duration-300 ml-2">Login</button>
+            </div>
         </div>
         <p id="userEmail" class="text-gray-500 text-sm hidden"></p>
 
@@ -120,29 +127,22 @@ window.deletePDF = deletePDF; // ✅ Ensure global access
             id="search" 
             onkeyup="filterPDFs()" 
             placeholder="🔍 Search PDFs..." 
-            class="w-full p-2 border border-gray-300 rounded mb-4"
+            class="w-full p-3 border border-gray-300 rounded dark:border-gray-700 bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white transition duration-300"
         >
 
-        <div id="loading" class="text-center text-gray-500">Loading PDFs...</div>
+        <div id="loading" class="text-center text-gray-500 mt-4">Loading PDFs...</div>
 
-        <ul id="pdfList" class="hidden">
+        <div id="pdfList" class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
             <% pdfFiles.forEach(file => { %>
-                <li class="pdf-item p-2 border-b flex justify-between items-center" data-filename="<%= file.name %>">
-                    <a href="<%= file.url %>" target="_blank" class="text-blue-500"><%= file.name %></a>
-                    <span class="text-gray-500 text-sm"><%= new Date(file.created).toLocaleString() %> | <%= file.size %></span>
-                    <button class="deleteButton hidden bg-red-500 text-white px-2 py-1 rounded text-sm" onclick="deletePDF('<%= file.name %>')">
+                <div class="pdf-item p-4 border rounded-lg shadow-lg bg-gray-50 dark:bg-gray-700 transition duration-300" data-filename="<%= file.name %>">
+                    <a href="<%= file.url %>" target="_blank" class="block text-blue-500 dark:text-blue-300 font-semibold hover:underline"><%= file.name %></a>
+                    <p class="text-gray-500 text-xs mt-1"><%= new Date(file.created).toLocaleString() %> | <%= file.size %></p>
+                    <button class="deleteButton hidden bg-red-500 text-white px-3 py-1 rounded mt-2 text-sm hover:bg-red-600 transition duration-300" onclick="deletePDF('<%= file.name %>')">
                         🗑 Delete
                     </button>
-                </li>
+                </div>
             <% }) %>
-        </ul>
+        </div>
     </div>
-
-    <script>
-        window.onload = function() {
-            document.getElementById("loading").style.display = "none";
-            document.getElementById("pdfList").classList.remove("hidden");
-        };
-    </script>
 </body>
 </html>
