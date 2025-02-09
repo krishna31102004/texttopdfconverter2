@@ -86,7 +86,12 @@ app.get("/allpdfs", async (req, res) => {
   try {
     const [files] = await bucket.getFiles({ prefix: "pdfs/" });
 
-    const pdfFiles = files.map(file => file.name.replace("pdfs/", ""));
+    const pdfFiles = files.map(file => ({
+      name: file.name.replace("pdfs/", ""),
+      url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(file.name)}?alt=media`, // ✅ Correct Firebase Storage URL format
+      created: file.metadata.timeCreated, // Upload timestamp
+    }));
+
     res.render("allpdfs", { pdfFiles });
   } catch (err) {
     console.error("🚨 Error fetching PDFs from Firebase:", err);
@@ -108,6 +113,19 @@ app.get("/pdfs/:filename", async (req, res) => {
   } catch (err) {
     console.error("🚨 Error fetching PDF URL:", err);
     res.status(404).send("PDF not found");
+  }
+});
+
+app.post("/delete-pdf", async (req, res) => {
+  const { filename } = req.body;
+  
+  try {
+    await bucket.file(`pdfs/${filename}`).delete();
+    console.log(`🗑 Deleted PDF: ${filename}`);
+    res.json({ success: true, message: "File deleted successfully" });
+  } catch (err) {
+    console.error("🚨 Error deleting PDF:", err);
+    res.status(500).json({ success: false, message: "Error deleting file" });
   }
 });
 
