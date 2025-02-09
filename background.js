@@ -17,7 +17,7 @@ chrome.runtime.onInstalled.addListener(() => {
           chrome.scripting.executeScript({
             target: { tabId: tab.id },
             function: function (selectedText) {
-                fetch('https://texttopdfconverter.onrender.com/api/generate-pdf', { // Update here
+                fetch('https://texttopdfconverter2.onrender.com/api/generate-pdf', { // Update here
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'
@@ -55,7 +55,7 @@ chrome.runtime.onInstalled.addListener(() => {
             target: { tabId: tab.id },
             function: function () {
             const allText = document.body.innerText;
-            fetch('https://texttopdfconverter.onrender.com/api/generate-pdf', { // Update here
+            fetch('https://texttopdfconverter2.onrender.com/api/generate-pdf', { // Update here
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'
