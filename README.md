@@ -1,7 +1,5 @@
 # Text to PDF Converter
 
-![Project Screenshot](https://your-image-url.com)
-
 ## 📌 About
 A **Text to PDF Converter** web service and Chrome extension that allows users to generate PDFs from selected text or entire web pages. The PDFs are stored in **Firebase Storage** and can be accessed anytime via a web interface.
 
@@ -44,14 +42,10 @@ $ npm install
 1. Go to **Firebase Console** → **Storage**.
 2. Create a new bucket with the name:
    ```
-   texttopdfconverter-95c62.appspot.com
+   texttopdfconverter-95c62.firebasestorage.app
    ```
 3. Download the Firebase Admin SDK JSON file.
-4. Rename it to:
-   ```
-   texttopdfconverter-95c62-firebase-adminsdk-fbsvc-5076fd6fe6.json
-   ```
-5. Place the file inside the project root and **add it to `.gitignore`**.
+4. Place the file inside the project root and **add it to `.gitignore`**.
 
 ### 5️⃣ Run Locally
 ```sh
