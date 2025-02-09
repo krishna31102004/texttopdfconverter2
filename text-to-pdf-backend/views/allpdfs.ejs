@@ -6,50 +6,100 @@
     <title>All PDFs</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 
-    <!-- ✅ Firebase SDK -->
     <!-- ✅ Firebase SDK (Corrected) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-    
+
         // ✅ Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyBei7dDbq3rf_oDS0vW0Hpv2BHO0C5Oh_k",
-            authDomain: "texttopdfconverter-95c62.firebaseapp.com",
-            projectId: "texttopdfconverter-95c62",
-            storageBucket: "texttopdfconverter-95c62.appspot.com",
-            messagingSenderId: "574641352096",
-            appId: "1:574641352096:web:28183047f39938a7d488c5"
-        };
-    
+  apiKey: "AIzaSyBei7dDbq3rf_oDS0vW0Hpv2BHO0C5Oh_k",
+  authDomain: "texttopdfconverter-95c62.firebaseapp.com",
+  projectId: "texttopdfconverter-95c62",
+  storageBucket: "texttopdfconverter-95c62.firebasestorage.app",
+  messagingSenderId: "574641352096",
+  appId: "1:574641352096:web:28183047f39938a7d488c5"
+};
+
         // ✅ Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const provider = new GoogleAuthProvider();
-    
+
+        // ✅ Function for authentication (Login/Logout)
         function handleAuth() {
             if (auth.currentUser) {
+                console.log("Logging out...");
                 signOut(auth);
             } else {
-                signInWithPopup(auth, provider).catch((error) => {
-                    console.error("❌ Login Error:", error.message);
-                    alert("Login failed: " + error.message);
-                });
+                console.log("Logging in...");
+                signInWithPopup(auth, provider)
+                    .catch((error) => {
+                        console.error("❌ Login Error:", error.message);
+                        alert("Login failed: " + error.message);
+                    });
             }
         }
-    
+        window.handleAuth = handleAuth; // ✅ Ensure global access
+
+        // ✅ Track user login state
         onAuthStateChanged(auth, (user) => {
             if (user) {
+                console.log("User logged in:", user.email);
                 document.getElementById("userEmail").innerText = `🔹 Logged in as: ${user.email}`;
                 document.getElementById("userEmail").classList.remove("hidden");
                 document.getElementById("authButton").innerText = "Logout";
                 document.querySelectorAll(".deleteButton").forEach(btn => btn.classList.remove("hidden"));
             } else {
+                console.log("User logged out.");
                 document.getElementById("userEmail").classList.add("hidden");
                 document.getElementById("authButton").innerText = "Login";
                 document.querySelectorAll(".deleteButton").forEach(btn => btn.classList.add("hidden"));
             }
         });
+
+        // ✅ Function to delete PDFs
+        function deletePDF(filename) {
+            const user = auth.currentUser;
+            if (!user) {
+                alert("❌ Please log in to delete PDFs.");
+                return;
+            }
+
+            user.getIdToken(true).then(idToken => {
+                fetch("/delete-pdf", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${idToken}`
+                    },
+                    body: JSON.stringify({ filename }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("✅ File deleted successfully");
+                        location.reload();
+                    } else {
+                        alert("❌ Failed to delete file");
+                    }
+                })
+                .catch(err => console.error("❌ Error:", err));
+            });
+        }
+        window.deletePDF = deletePDF; // ✅ Ensure global access
+
+        // ✅ Function to filter PDFs by search
+        function filterPDFs() {
+            let searchInput = document.getElementById("search").value.toLowerCase();
+            let items = document.querySelectorAll(".pdf-item");
+
+            items.forEach(item => {
+                let filename = item.getAttribute("data-filename").toLowerCase();
+                item.style.display = filename.includes(searchInput) ? "flex" : "none";
+            });
+        }
+        window.filterPDFs = filterPDFs; // ✅ Ensure global access
     </script>
 
 </head>
