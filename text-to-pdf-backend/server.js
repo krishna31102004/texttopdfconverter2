@@ -11,7 +11,7 @@ const admin = require("firebase-admin");
 const serviceAccount = require("./texttopdfconverter-95c62-firebase-adminsdk-fbsvc-5076fd6fe6.json");
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: "texttopdfconverter-95c62.appspot.com",
+  storageBucket: "texttopdfconverter-95c62.firebasestorage.app",
 });
 
 const bucket = admin.storage().bucket();
