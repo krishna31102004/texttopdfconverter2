@@ -77,10 +77,6 @@ app.post("/api/generate-pdf", async (req, res) => {
   }
 });
 
-app.get("/", (req, res) => {
-  res.redirect("/allpdfs");
-});
-
 // Route to render all PDFs
 app.get("/allpdfs", async (req, res) => {
   try {
@@ -90,6 +86,7 @@ app.get("/allpdfs", async (req, res) => {
       name: file.name.replace("pdfs/", ""),
       url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(file.name)}?alt=media`, // ✅ Correct Firebase Storage URL format
       created: file.metadata.timeCreated, // Upload timestamp
+      size: (file.metadata.size / 1024).toFixed(2) + " KB", // ✅ Convert bytes to KB
     }));
 
     res.render("allpdfs", { pdfFiles });
@@ -116,6 +113,7 @@ app.get("/pdfs/:filename", async (req, res) => {
   }
 });
 
+// Route to delete a PDF
 app.post("/delete-pdf", async (req, res) => {
   const { filename } = req.body;
   

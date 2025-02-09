@@ -23,16 +23,41 @@
             })
             .catch(err => console.error("Error:", err));
         }
+
+        function filterPDFs() {
+            let searchInput = document.getElementById("search").value.toLowerCase();
+            let items = document.querySelectorAll(".pdf-item");
+
+            items.forEach(item => {
+                let filename = item.getAttribute("data-filename").toLowerCase();
+                if (filename.includes(searchInput)) {
+                    item.style.display = "flex";
+                } else {
+                    item.style.display = "none";
+                }
+            });
+        }
     </script>
 </head>
 <body class="bg-gray-100 p-4">
     <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg">
         <h1 class="text-2xl font-bold text-center mb-4">List of All PDFs</h1>
-        <ul>
+
+        <input 
+            type="text" 
+            id="search" 
+            onkeyup="filterPDFs()" 
+            placeholder="Search PDFs..." 
+            class="w-full p-2 border border-gray-300 rounded mb-4"
+        >
+
+        <div id="loading" class="text-center text-gray-500">Loading PDFs...</div>
+
+        <ul id="pdfList" class="hidden">
             <% pdfFiles.forEach(file => { %>
-                <li class="p-2 border-b flex justify-between items-center">
+                <li class="pdf-item p-2 border-b flex justify-between items-center" data-filename="<%= file.name %>">
                     <a href="<%= file.url %>" target="_blank" class="text-blue-500"><%= file.name %></a>
-                    <span class="text-gray-500 text-sm"><%= new Date(file.created).toLocaleString() %></span>
+                    <span class="text-gray-500 text-sm"><%= new Date(file.created).toLocaleString() %> | <%= file.size %></span>
                     <button onclick="deletePDF('<%= file.name %>')" class="bg-red-500 text-white px-2 py-1 rounded text-sm">
                         Delete
                     </button>
@@ -40,5 +65,12 @@
             <% }) %>
         </ul>
     </div>
+
+    <script>
+        window.onload = function() {
+            document.getElementById("loading").style.display = "none";
+            document.getElementById("pdfList").classList.remove("hidden");
+        };
+    </script>
 </body>
 </html>
