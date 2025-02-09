@@ -22,15 +22,25 @@ app.use(cors());
 app.use(bodyParser.json());
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
-app.use(express.static(path.join(__dirname, "pdfs")));
+app.use(express.static(path.join(__dirname, "public"))); // ✅ Serve static files
 
-// Ensure the 'pdfs' directory exists
-if (!fs.existsSync(path.join(__dirname, "pdfs"))) {
-  fs.mkdirSync(path.join(__dirname, "pdfs"));
+// Middleware to verify Firebase ID token
+async function verifyToken(req, res, next) {
+  const idToken = req.headers.authorization;
+  if (!idToken) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(idToken);
+    req.user = decodedToken; // Attach user data
+    next();
+  } catch (error) {
+    console.error("🚨 Token verification failed:", error);
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
 }
 
-// Generate and upload PDF to Firebase Storage
-app.post("/api/generate-pdf", async (req, res) => {
+// Generate and upload PDF to Firebase Storage (Requires Auth)
+app.post("/api/generate-pdf", verifyToken, async (req, res) => {
   const { text } = req.body;
   try {
     let uuid = crypto.randomUUID();
@@ -53,7 +63,6 @@ app.post("/api/generate-pdf", async (req, res) => {
           metadata: { contentType: "application/pdf" },
         });
 
-        // Get public URL
         const file = bucket.file(`pdfs/${fileName}`);
         const [url] = await file.getSignedUrl({
           action: "read",
@@ -62,9 +71,7 @@ app.post("/api/generate-pdf", async (req, res) => {
 
         console.log(`✅ PDF successfully uploaded: ${url}`);
 
-        // Delete local temp file
         fs.unlinkSync(tempPath);
-
         res.json({ success: true, pdfUrl: url });
       } catch (uploadErr) {
         console.error("🚨 Firebase upload error:", uploadErr);
@@ -84,9 +91,9 @@ app.get("/allpdfs", async (req, res) => {
 
     const pdfFiles = files.map(file => ({
       name: file.name.replace("pdfs/", ""),
-      url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(file.name)}?alt=media`, // ✅ Correct Firebase Storage URL format
-      created: file.metadata.timeCreated, // Upload timestamp
-      size: (file.metadata.size / 1024).toFixed(2) + " KB", // ✅ Convert bytes to KB
+      url: `https://firebasestorage.googleapis.com/v0/b/${bucket.name}/o/${encodeURIComponent(file.name)}?alt=media`,
+      created: file.metadata.timeCreated,
+      size: (file.metadata.size / 1024).toFixed(2) + " KB",
     }));
 
     res.render("allpdfs", { pdfFiles });
@@ -113,8 +120,8 @@ app.get("/pdfs/:filename", async (req, res) => {
   }
 });
 
-// Route to delete a PDF
-app.post("/delete-pdf", async (req, res) => {
+// Route to delete a PDF (Requires Auth)
+app.post("/delete-pdf", verifyToken, async (req, res) => {
   const { filename } = req.body;
   
   try {
