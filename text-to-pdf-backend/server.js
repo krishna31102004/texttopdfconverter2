@@ -11,7 +11,7 @@ const admin = require("firebase-admin");
 const serviceAccount = require("./texttopdfconverter-95c62-firebase-adminsdk-fbsvc-5076fd6fe6.json");
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  storageBucket: "texttopdfconverter-95c62.firebasestorage.app",
+  storageBucket: "texttopdfconverter-95c62.firebasestorage.app", // ✅ Fixed Firebase bucket name
 });
 
 const bucket = admin.storage().bucket();
@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(bodyParser.json());
 app.set("view engine", "ejs");
-app.set("views", path.join(__dirname, "views")); // Fixed view directory
+app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "pdfs")));
 
 // Ensure the 'pdfs' directory exists
@@ -36,34 +36,43 @@ app.post("/api/generate-pdf", async (req, res) => {
     let uuid = crypto.randomUUID();
     const fileName = `${uuid}.pdf`;
     const tempPath = path.join(__dirname, fileName);
-    
+
+    console.log(`📄 Generating PDF: ${fileName}`);
+
     const doc = new PDFDocument();
     const writeStream = fs.createWriteStream(tempPath);
     doc.pipe(writeStream);
     doc.text(text);
     doc.end();
-    
+
     writeStream.on("finish", async () => {
-      // Upload to Firebase
-      await bucket.upload(tempPath, {
-        destination: `pdfs/${fileName}`,
-        metadata: { contentType: "application/pdf" },
-      });
-      
-      // Get public URL
-      const file = bucket.file(`pdfs/${fileName}`);
-      const [url] = await file.getSignedUrl({
-        action: "read",
-        expires: "03-01-2030",
-      });
-      
-      // Delete local temp file
-      fs.unlinkSync(tempPath);
-      
-      res.json({ success: true, pdfUrl: url });
+      try {
+        console.log(`📤 Uploading PDF to Firebase: ${fileName}`);
+        await bucket.upload(tempPath, {
+          destination: `pdfs/${fileName}`,
+          metadata: { contentType: "application/pdf" },
+        });
+
+        // Get public URL
+        const file = bucket.file(`pdfs/${fileName}`);
+        const [url] = await file.getSignedUrl({
+          action: "read",
+          expires: "03-01-2030",
+        });
+
+        console.log(`✅ PDF successfully uploaded: ${url}`);
+
+        // Delete local temp file
+        fs.unlinkSync(tempPath);
+
+        res.json({ success: true, pdfUrl: url });
+      } catch (uploadErr) {
+        console.error("🚨 Firebase upload error:", uploadErr);
+        res.status(500).send("Error uploading PDF to Firebase");
+      }
     });
   } catch (err) {
-    console.error(err);
+    console.error("🚨 PDF generation error:", err);
     res.status(500).send("Error generating PDF");
   }
 });
@@ -73,33 +82,36 @@ app.get("/", (req, res) => {
 });
 
 // Route to render all PDFs
-app.get("/allpdfs", (req, res) => {
-  const pdfDir = path.join(__dirname, "pdfs");
+app.get("/allpdfs", async (req, res) => {
+  try {
+    const [files] = await bucket.getFiles({ prefix: "pdfs/" });
 
-  fs.readdir(pdfDir, (err, files) => {
-    if (err) {
-      console.error("Error reading PDFs directory:", err);
-      return res.status(500).send("Error loading PDFs");
-    }
-    res.render("allpdfs", { pdfFiles: files });
-  });
+    const pdfFiles = files.map(file => file.name.replace("pdfs/", ""));
+    res.render("allpdfs", { pdfFiles });
+  } catch (err) {
+    console.error("🚨 Error fetching PDFs from Firebase:", err);
+    res.status(500).send("Error loading PDFs");
+  }
 });
 
 // Route to serve individual PDFs
-app.get("/pdfs/:filename", (req, res) => {
+app.get("/pdfs/:filename", async (req, res) => {
   const { filename } = req.params;
-  const filePath = path.join(__dirname, "pdfs", filename);
+  try {
+    const file = bucket.file(`pdfs/${filename}`);
+    const [url] = await file.getSignedUrl({
+      action: "read",
+      expires: "03-01-2030",
+    });
 
-  fs.access(filePath, fs.constants.R_OK, (err) => {
-    if (err) {
-      console.error("Error accessing PDF file:", err);
-      return res.status(404).send("PDF not found");
-    }
-    res.sendFile(filePath);
-  });
+    res.redirect(url);
+  } catch (err) {
+    console.error("🚨 Error fetching PDF URL:", err);
+    res.status(404).send("PDF not found");
+  }
 });
 
 // Start the server
 app.listen(PORT, "0.0.0.0", () =>
-  console.log(`Server running on port ${PORT}`)
+  console.log(`🚀 Server running on port ${PORT}`)
 );
