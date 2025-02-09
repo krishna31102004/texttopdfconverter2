@@ -8,51 +8,53 @@
 
     <!-- ✅ Firebase SDK -->
     <!-- ✅ Firebase SDK (Corrected) -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } 
-        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
 
-    // ✅ Correct Firebase Config
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Firebase configuration
     const firebaseConfig = {
-        apiKey: "AIzaSyBei7dDbq3rf_oDS0vW0Hpv2BHO0C5Oh_k",
-        authDomain: "texttopdfconverter-95c62.firebaseapp.com",
-        projectId: "texttopdfconverter-95c62",
-        storageBucket: "texttopdfconverter-95c62.firebasestorage.app",
-        messagingSenderId: "574641352096",
-        appId: "1:574641352096:web:28183047f39938a7d488c5"
+      apiKey: "AIzaSyBei7dDbq3rf_oDS0vW0Hpv2BHO0C5Oh_k",
+      authDomain: "texttopdfconverter-95c62.firebaseapp.com",
+      projectId: "texttopdfconverter-95c62",
+      storageBucket: "texttopdfconverter-95c62.firebasestorage.app",
+      messagingSenderId: "574641352096",
+      appId: "1:574641352096:web:28183047f39938a7d488c5"
     };
 
-    // ✅ Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
 
+    // Authentication Logic
     function handleAuth() {
-        if (auth.currentUser) {
-            signOut(auth).catch(error => console.error("Sign-out error:", error));
-        } else {
-            signInWithPopup(auth, provider).catch(error => console.error("Login error:", error));
-        }
+      const user = firebase.auth().currentUser;
+      if (user) {
+        firebase.auth().signOut();
+      } else {
+        let provider = new firebase.auth.GoogleAuthProvider();
+        firebase.auth().signInWithPopup(provider);
+      }
     }
 
-    onAuthStateChanged(auth, (user) => {
-        if (user) {
-            document.getElementById("userEmail").innerText = `🔹 Logged in as: ${user.email}`;
-            document.getElementById("userEmail").classList.remove("hidden");
-            document.getElementById("authButton").innerText = "Logout";
-            document.querySelectorAll(".deleteButton").forEach(btn => btn.classList.remove("hidden"));
-        } else {
-            document.getElementById("userEmail").classList.add("hidden");
-            document.getElementById("authButton").innerText = "Login";
-            document.querySelectorAll(".deleteButton").forEach(btn => btn.classList.add("hidden"));
-        }
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById("userEmail").innerText = `🔹 Logged in as: ${user.email}`;
+        document.getElementById("userEmail").classList.remove("hidden");
+        document.getElementById("authButton").innerText = "Logout";
+        document.querySelectorAll(".deleteButton").forEach(btn => btn.classList.remove("hidden"));
+      } else {
+        document.getElementById("userEmail").classList.add("hidden");
+        document.getElementById("authButton").innerText = "Login";
+        document.querySelectorAll(".deleteButton").forEach(btn => btn.classList.add("hidden"));
+      }
     });
 
-    document.addEventListener("DOMContentLoaded", function () {
-        document.getElementById("authButton").addEventListener("click", handleAuth);
-    });
+    // Attach event listener to login/logout button
+    document.getElementById("authButton").addEventListener("click", handleAuth);
+  });
 </script>
+
 
 
 </head>
