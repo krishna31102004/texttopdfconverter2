@@ -7,83 +7,54 @@
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 
     <!-- ✅ Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+    <!-- ✅ Firebase SDK (Corrected) -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    <script>
-        // ✅ Firebase configuration (Update with actual credentials)
-        const firebaseConfig = {
-  apiKey: "AIzaSyBei7dDbq3rf_oDS0vW0Hpv2BHO0C5Oh_k",
-  authDomain: "texttopdfconverter-95c62.firebaseapp.com",
-  projectId: "texttopdfconverter-95c62",
-  storageBucket: "texttopdfconverter-95c62.firebasestorage.app",
-  messagingSenderId: "574641352096",
-  appId: "1:574641352096:web:28183047f39938a7d488c5"
-};
-        firebase.initializeApp(firebaseConfig);
+    // ✅ Correct Firebase Config
+    const firebaseConfig = {
+        apiKey: "AIzaSyBei7dDbq3rf_oDS0vW0Hpv2BHO0C5Oh_k",
+        authDomain: "texttopdfconverter-95c62.firebaseapp.com",
+        projectId: "texttopdfconverter-95c62",
+        storageBucket: "texttopdfconverter-95c62.firebasestorage.app",
+        messagingSenderId: "574641352096",
+        appId: "1:574641352096:web:28183047f39938a7d488c5"
+    };
 
-        function deletePDF(filename) {
-            const user = firebase.auth().currentUser;
-            if (!user) {
-                alert("❌ Please log in to delete PDFs.");
-                return;
-            }
+    // ✅ Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
 
-            firebase.auth().currentUser.getIdToken(true).then(idToken => {
-                fetch("/delete-pdf", {
-                    method: "POST",
-                    headers: { 
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${idToken}`  // ✅ Security improvement
-                    },
-                    body: JSON.stringify({ filename }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert("✅ File deleted successfully");
-                        location.reload();
-                    } else {
-                        alert("❌ Failed to delete file");
-                    }
-                })
-                .catch(err => console.error("❌ Error:", err));
-            });
+    function handleAuth() {
+        if (auth.currentUser) {
+            signOut(auth).catch(error => console.error("Sign-out error:", error));
+        } else {
+            signInWithPopup(auth, provider).catch(error => console.error("Login error:", error));
         }
+    }
 
-        function filterPDFs() {
-            let searchInput = document.getElementById("search").value.toLowerCase();
-            let items = document.querySelectorAll(".pdf-item");
-
-            items.forEach(item => {
-                let filename = item.getAttribute("data-filename").toLowerCase();
-                item.style.display = filename.includes(searchInput) ? "flex" : "none";
-            });
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            document.getElementById("userEmail").innerText = `🔹 Logged in as: ${user.email}`;
+            document.getElementById("userEmail").classList.remove("hidden");
+            document.getElementById("authButton").innerText = "Logout";
+            document.querySelectorAll(".deleteButton").forEach(btn => btn.classList.remove("hidden"));
+        } else {
+            document.getElementById("userEmail").classList.add("hidden");
+            document.getElementById("authButton").innerText = "Login";
+            document.querySelectorAll(".deleteButton").forEach(btn => btn.classList.add("hidden"));
         }
+    });
 
-        function handleAuth() {
-            const user = firebase.auth().currentUser;
-            if (user) {
-                firebase.auth().signOut();
-            } else {
-                let provider = new firebase.auth.GoogleAuthProvider();
-                firebase.auth().signInWithPopup(provider);
-            }
-        }
+    document.addEventListener("DOMContentLoaded", function () {
+        document.getElementById("authButton").addEventListener("click", handleAuth);
+    });
+</script>
 
-        firebase.auth().onAuthStateChanged(user => {
-            if (user) {
-                document.getElementById("userEmail").innerText = `🔹 Logged in as: ${user.email}`;
-                document.getElementById("userEmail").classList.remove("hidden");
-                document.getElementById("authButton").innerText = "Logout";
-                document.querySelectorAll(".deleteButton").forEach(btn => btn.classList.remove("hidden"));
-            } else {
-                document.getElementById("userEmail").classList.add("hidden");
-                document.getElementById("authButton").innerText = "Login";
-                document.querySelectorAll(".deleteButton").forEach(btn => btn.classList.add("hidden"));
-            }
-        });
-    </script>
+
 </head>
 <body class="bg-gray-100 p-4">
     <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-lg">
