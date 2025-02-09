@@ -5,7 +5,16 @@ const PDFDocument = require("pdfkit");
 const fs = require("fs");
 const crypto = require("crypto");
 const path = require("path");
+const admin = require("firebase-admin");
 
+// Load Firebase credentials
+const serviceAccount = require("./texttopdfconverter-95c62-firebase-adminsdk-fbsvc-5076fd6fe6.json");
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  storageBucket: "your-firebase-bucket-name.appspot.com",
+});
+
+const bucket = admin.storage().bucket();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
@@ -20,31 +29,38 @@ if (!fs.existsSync(path.join(__dirname, "pdfs"))) {
   fs.mkdirSync(path.join(__dirname, "pdfs"));
 }
 
-// Generate and return a PDF file
+// Generate and upload PDF to Firebase Storage
 app.post("/api/generate-pdf", async (req, res) => {
   const { text } = req.body;
   try {
     let uuid = crypto.randomUUID();
-    const filePath = path.join(__dirname, "pdfs", uuid + ".pdf");
-    const writeStream = fs.createWriteStream(filePath);
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename=${uuid}.pdf`);
+    const fileName = `${uuid}.pdf`;
+    const tempPath = path.join(__dirname, fileName);
+    
     const doc = new PDFDocument();
+    const writeStream = fs.createWriteStream(tempPath);
     doc.pipe(writeStream);
     doc.text(text);
     doc.end();
-
-    writeStream.on("close", async () => {
-      try {
-        const fileContent = await fs.promises.readFile(filePath);
-        res.setHeader("Content-Type", "application/pdf");
-        res.setHeader("Content-Disposition", `attachment; filename=${uuid}.pdf`);
-        res.send(fileContent);
-      } catch (err) {
-        console.error("Error reading PDF file:", err);
-        res.status(500).send("Error generating PDF");
-      }
+    
+    writeStream.on("finish", async () => {
+      // Upload to Firebase
+      await bucket.upload(tempPath, {
+        destination: `pdfs/${fileName}`,
+        metadata: { contentType: "application/pdf" },
+      });
+      
+      // Get public URL
+      const file = bucket.file(`pdfs/${fileName}`);
+      const [url] = await file.getSignedUrl({
+        action: "read",
+        expires: "03-01-2030",
+      });
+      
+      // Delete local temp file
+      fs.unlinkSync(tempPath);
+      
+      res.json({ success: true, pdfUrl: url });
     });
   } catch (err) {
     console.error(err);
